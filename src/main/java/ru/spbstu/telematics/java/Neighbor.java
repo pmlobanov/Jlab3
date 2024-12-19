@@ -1,11 +1,5 @@
 package ru.spbstu.telematics.java;
 
-class BerryException extends Exception {
-    public BerryException(String message) {
-        super(message);
-    }
-}
-
 public class Neighbor implements Runnable{
 
     //поднят ли флаг
@@ -25,17 +19,18 @@ public class Neighbor implements Runnable{
 
     @Override
     public void run() {
+        boolean flag = true;
         while (true)
         {
             try {
-                attemptToEnterField();
+                flag = attemptToEnterField();
                 Thread.sleep(100);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             }
             //Booker, catch!
-            catch (BerryException e)
+            if(!flag)
             {
                 System.out.println("Сосед " + m_id + " покинул поле. Ягод больше нет" );
                 break;
@@ -43,7 +38,7 @@ public class Neighbor implements Runnable{
         }
     }
 
-    public void attemptToEnterField() throws InterruptedException, BerryException {
+    public boolean attemptToEnterField() throws InterruptedException {
         if(!m_other.flag_raised)
         {
             try
@@ -58,7 +53,7 @@ public class Neighbor implements Runnable{
                     m_progress += 100;
                 }
                 else {
-                    throw new BerryException("Ягоды закончились");
+                    return false;
                 }
                 Thread.sleep(10);
                 System.out.println("Сосед " + m_id + " покинул поле." );
@@ -72,9 +67,10 @@ public class Neighbor implements Runnable{
         }
         else {
             System.out.println("Сосед " + m_id + " видит флаг. Попытка неудачна");
-            Thread.sleep(100);
+            Thread.sleep(80);
         }
-
+        return true;
     }
 }
+
 
