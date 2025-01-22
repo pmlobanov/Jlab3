@@ -1,76 +1,79 @@
 package ru.spbstu.telematics.java;
+class BerryException extends Exception {
+    public BerryException(String message) {
+        super(message);
+    }
+}
 
-public class Neighbor implements Runnable{
+public class Neighbor implements Runnable {
 
-    //поднят ли флаг
-    public boolean flag_raised;
+    // поднят ли флаг
+    public volatile boolean flag_raised;
     int m_id;
-    //кол-во собранных ягод
+    // кол-во собранных ягод
     int m_progress;
     Neighbor m_other;
 
-    Neighbor(int in_id, Neighbor other)
-    {
+    Neighbor(int in_id, Neighbor other) {
+        flag_raised = false;
         m_id = in_id;
         m_progress = 0;
         this.m_other = other;
     }
-    public void setM_other(Neighbor other) {this.m_other = other; }
+
+    public void setM_other(Neighbor other) {
+        this.m_other = other;
+    }
 
     @Override
     public void run() {
-        boolean flag = true;
-        while (true)
-        {
+        boolean flag = false;
+        while (true) {
             try {
+                Thread.sleep(150);
                 flag = attemptToEnterField();
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
+                if (flag) {
+                    if (Field.number_of_berries > 0) {
+                        Field.number_of_berries -= 100;
+                        m_progress += 100;
+                        System.out.println("Сосед " + m_id + " собрал ягоды. Всего: " + m_progress);
+                    } else {
+                        System.out.println("Сосед " + m_id + " покинул поле. Ягод больше нет");
+                        flag_raised = false;
+                        break;
+                    }
+                    System.out.println("Сосед " + m_id + " покинул поле.");
+                    // flag_raised = false;
+                }
+                else Thread.sleep(70);
+            }
+            catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             }
-            //Booker, catch!
-            if(!flag)
-            {
-                System.out.println("Сосед " + m_id + " покинул поле. Ягод больше нет" );
-                break;
+            finally {
+                flag_raised = false;
             }
         }
     }
 
     public boolean attemptToEnterField() throws InterruptedException {
-        if(!m_other.flag_raised)
-        {
-            try
-            {
-                Field.flagLock.lock();
+        Field.flagLock.lock();
+        try {
+            if (!m_other.flag_raised) {
+                System.out.println("Сосед " + m_id + " выставил флаг");
                 flag_raised = true;
                 System.out.println("Сосед " + m_id + " на поле");
-                Thread.sleep(100);
-                if(Field.number_of_berries >0)
-                {
-                    Field.number_of_berries -= 100;
-                    m_progress += 100;
-                }
-                else {
-                    return false;
-                }
-                Thread.sleep(10);
-                System.out.println("Сосед " + m_id + " покинул поле." );
+                return true;
+            } else {
+                System.out.println("Сосед " + m_id + " видит флаг. Попытка неудачна");
+                return false;
             }
-            finally {
-                System.out.println("Cосед "+ m_id+ " собрал ягоды. Всего: " + m_progress);
-                flag_raised = false;
-                Field.flagLock.unlock();
-            }
-
+        } finally {
+            Field.flagLock.unlock();
         }
-        else {
-            System.out.println("Сосед " + m_id + " видит флаг. Попытка неудачна");
-            Thread.sleep(80);
-        }
-        return true;
     }
 }
+
 
 
